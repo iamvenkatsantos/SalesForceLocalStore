@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_type">com.mycompany.react.login</string>
+	<string name="app_name">firstApp</string>
+	<string name="app_package">com.mycompany.react</string>
+</resources>
