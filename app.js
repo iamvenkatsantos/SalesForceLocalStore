@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 2017-present, salesforce.com, inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided
- * that the following conditions are met:
- *
- * Redistributions of source code must retain the above copyright notice, this list of conditions and the
- * following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
- * the following disclaimer in the documentation and/or other materials provided with the distribution.
- *
- * Neither the name of salesforce.com, inc. nor the names of its contributors may be used to endorse or
- * promote products derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
-
 import React from "react";
 import {
   StyleSheet,
@@ -31,16 +5,23 @@ import {
   View,
   FlatList,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 
-import { createStackNavigator } from "react-navigation";
+import { createStackNavigator } from "@react-navigation/stack";
+
+import { NavigationContainer } from "@react-navigation/native";
 import { oauth, net } from "react-native-force";
 import {
   syncData,
   reSyncData,
   addStoreChangeListener,
   getProducts,
-} from "./storeConfigurations/store";
+} from "./store_configuration/store";
+
+import { faPlus, faSync } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import AddProduct from "./AddProduct";
 class ContactListScreen extends React.Component {
   constructor(props) {
     super(props);
@@ -80,46 +61,176 @@ class ContactListScreen extends React.Component {
       }
     );
   };
+
+  displayDate(date) {
+    if (date !== null && date !== undefined) {
+      let formatDate = date.toString().split("T");
+      let ISTdate = new Date(`${formatDate[0]}`);
+      return `Modified by ${ISTdate.toString().slice(4, 16)}`;
+    } else {
+      let formatDate = JSON.stringify(new Date()).split("T");
+      let ISTdate = new Date(`${formatDate[0].split('"')[1]}`);
+      return `Modified by ${ISTdate.toString().slice(4, 16)}`;
+    }
+  }
+
   render() {
     return (
       <View style={styles.container}>
-        <TouchableOpacity onPress={() => reSyncData()}>
-          <Text>Sync-{this.state.queryNumber}</Text>
-        </TouchableOpacity>
-        <FlatList
-          data={this.state.data}
-          renderItem={({ item }) => (
-            <Text style={styles.item}>{item.Name}</Text>
-          )}
-          keyExtractor={(item, index) => "key_" + index}
-        />
+        <View style={styles.container2}>
+          <Text style={styles.textHead}>Local Store</Text>
+          <View style={{ flexDirection: "row" }}>
+            <TouchableOpacity
+              style={styles.syncButton}
+              onPress={() => reSyncData()}
+              activeOpacity={0.8}
+            >
+              <Text style={{ ...styles.text, color: "white" }}>
+                <FontAwesomeIcon
+                  icon={faSync}
+                  color="white"
+                  size={width * 0.05}
+                />
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => this.props.navigation.navigate("add_product")}
+              activeOpacity={0.8}
+              style={styles.syncButton}
+            >
+              <Text style={{ ...styles.text, color: "white" }}>
+                <FontAwesomeIcon
+                  icon={faPlus}
+                  color="white"
+                  size={width * 0.05}
+                />
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {console.log(this.state.data[this.state.data.length - 3])}
+        <View style={styles.flatView}>
+          <FlatList
+            data={this.state.data}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.faltViewCard}>
+                <View style={styles.container1}>
+                  <Text style={styles.text}>Product Name:</Text>
+                  <Text style={styles.text1}>{item.Name}</Text>
+                </View>
+                <View style={styles.container1}>
+                  <Text style={styles.text}>Description:</Text>
+                  <Text style={styles.text3}>
+                    {item.Description || "Description yet to be added"}
+                  </Text>
+                </View>
+                <Text style={styles.text2}>
+                  {this.displayDate(item.LastModifiedDate)}
+                </Text>
+              </View>
+            )}
+            keyExtractor={(item, index) => "key_" + index}
+          />
+        </View>
       </View>
     );
   }
 }
 
+const { height, width } = Dimensions.get("screen");
+
 const styles = StyleSheet.create({
+  textHead: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: width * 0.05,
+  },
+  text: {
+    fontSize: width * 0.04,
+    fontWeight: "bold",
+  },
+  text1: {
+    fontSize: width * 0.04,
+    marginLeft: width * 0.03,
+  },
+  text3: {
+    fontSize: width * 0.04,
+    marginLeft: width * 0.08,
+  },
+  text2: {
+    fontSize: width * 0.03,
+    alignSelf: "flex-end",
+    marginRight: width * 0.02,
+  },
   container: {
     flex: 1,
-    paddingTop: 22,
+    justifyContent: "flex-start",
+    alignItems: "center",
     backgroundColor: "white",
   },
-  item: {
-    padding: 10,
-    fontSize: 18,
-    height: 44,
+  container2: {
+    width: width,
+    paddingLeft: width * 0.033,
+    paddingRight: width * 0.033,
+    height: width * 0.15,
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexDirection: "row",
+    alignSelf: "center",
+    backgroundColor: "black",
+  },
+  syncButton: {
+    width: width * 0.1,
+    height: width * 0.1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 4,
+    marginRight: width * 0.02,
+  },
+  flatView: {
+    width: width * 0.95,
+    height: width * 1.83,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingTop: width * 0.05,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  faltViewCard: {
+    paddingTop: width * 0.03,
+    paddingLeft: width * 0.04,
+    width: width * 0.95,
+    height: width * 0.3,
+    marginBottom: width * 0.02,
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "black",
+  },
+  container1: {
+    width: width * 0.9,
+    height: width * 0.1,
+    flexDirection: "row",
   },
 });
 
-export const App = createStackNavigator(
-  {
-    Home: {
-      screen: ContactListScreen,
-    },
-  },
-  {
-    defaultNavigationOptions: {
-      header: null,
-    },
-  }
-);
+export const Localapp = ContactListScreen;
+
+const Stack = createStackNavigator();
+
+export default function SafecommsStackNav() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator headerMode="none" initialRouteName="intro">
+        <Stack.Screen name="intro" component={ContactListScreen} />
+        <Stack.Screen name="add_product" component={AddProduct} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

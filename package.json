@@ -12,13 +12,25 @@
         "SalesforceMobileSDK-iOS": "https://github.com/forcedotcom/SalesforceMobileSDK-iOS.git#v8.0.0"
     },
     "dependencies": {
+        "@fortawesome/fontawesome-svg-core": "^1.2.34",
+        "@fortawesome/free-brands-svg-icons": "^5.15.2",
+        "@fortawesome/free-regular-svg-icons": "^5.15.2",
+        "@fortawesome/free-solid-svg-icons": "^5.15.2",
+        "@fortawesome/react-native-fontawesome": "^0.2.6",
+        "@react-native-community/masked-view": "^0.1.10",
+        "@react-navigation/native": "^5.9.2",
+        "@react-navigation/stack": "^5.14.2",
         "acorn": "^6.0.0",
         "eslint": "^5.0.0",
         "react": "16.9.0",
         "react-native": "0.61.3",
         "react-native-force": "git+https://github.com/forcedotcom/SalesforceMobileSDK-ReactNative.git#v8.0.0",
+        "react-native-gesture-handler": "^1.10.1",
         "react-native-reanimated": "^1.13.2",
-        "react-navigation": "2.18.3"
+        "react-native-safe-area-context": "^3.1.9",
+        "react-native-screens": "^2.17.1",
+        "react-native-svg": "^12.1.0",
+        "react-navigation": "^4.4.3"
     },
     "devDependencies": {
         "@babel/core": "^7.3.3",

@@ -68,15 +68,14 @@ const reSyncContacts = () => {
   });
 };
 
-
 export const addStoreChangeListener = (listener) => {
   eventEmitter.addListener(SMARTSTORE_CHANGED, listener);
 };
 
-//ITS USED TO GET OUR PRODUCTS FROM PRODUCT2 OBJECT IN SERVER 
+//ITS USED TO GET OUR PRODUCTS FROM PRODUCT2 OBJECT IN SERVER
 export const getProducts = (query, successCallback, errorCallback) => {
   let querySpec;
-  querySpec = smartstore.buildAllQuerySpec("Name", "ascending", 20);
+  querySpec = smartstore.buildAllQuerySpec("Name", "ascending", 2);
   //ITS USED FOR SEARCHING PURPOSE
   //   if (query === "") {
   //   } else {
@@ -153,7 +152,7 @@ const traverseCursor = (
   }
 };
 
-//FIRST TIME WE HAVE TO CREATE 
+//FIRST TIME WE HAVE TO CREATE
 const firstTimeSyncData = () => {
   return registerSoup(false, "Product2", [
     { path: "Id", type: "string" },
@@ -187,6 +186,36 @@ const syncUpProducts = () => {
 //resyncin
 export const reSyncData = () => {
   return syncUpProducts().then(reSyncContacts);
+};
+
+export const addContact = (successCallback, errorCallback) => {
+  const contact = {
+    Id: `local_${new Date().getTime()}`,
+    Name: null,
+    Description: null,
+    ExternalId: null,
+    LastModifiedById: null,
+    attributes: { type: "Product2" },
+    __locally_created__: true,
+    __locally_updated__: false,
+    __locally_deleted__: false,
+    __local__: true,
+  };
+  smartstore.upsertSoupEntries(
+    false,
+    "Product2",
+    [contact],
+    (contacts) => successCallback(contacts[0]),
+    errorCallback
+  );
+};
+
+//save local
+export const saveContact = (contact, callback) => {
+  smartstore.upsertSoupEntries(false, "Product2", [contact], () => {
+    callback();
+    emitSmartStoreChanged();
+  });
 };
 
 //syncing a data
