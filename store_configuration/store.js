@@ -31,13 +31,12 @@ const syncDownProducts = () => {
     "Id",
     "Name",
     "Description",
-    "LastModifiedById",
     "ExternalId",
     "LastModifiedDate",
   ];
   const target = {
     type: "soql",
-    query: `SELECT ${fieldlist.join(",")} FROM Product2 LIMIT 10000`,
+    query: `SELECT ${fieldlist.join(",")} FROM Product2 LIMIT 10000 `,
   };
   return syncDown(
     false,
@@ -76,6 +75,16 @@ export const addStoreChangeListener = (listener) => {
 export const getProducts = (query, successCallback, errorCallback) => {
   let querySpec;
   querySpec = smartstore.buildAllQuerySpec("Name", "ascending", 2);
+
+  // query = "Venkat";
+  // querySpec = smartstore.buildMatchQuerySpec(
+  //   null,
+  //   `{Product2:Name}:${query}*`,
+  //   "ascending",
+  //   100,
+  //   "Name"
+  // );
+
   //ITS USED FOR SEARCHING PURPOSE
   //   if (query === "") {
   //   } else {
@@ -158,8 +167,8 @@ const firstTimeSyncData = () => {
     { path: "Id", type: "string" },
     { path: "Name", type: "full_text" },
     { path: "Description", type: "full_text" },
-    { path: "LastModifiedById", type: "string" },
     { path: "ExternalId", type: "full_text" },
+    { path: "LastModifiedDate", type: "string" },
     { path: "__local__", type: "string" },
   ]).then(syncDownProducts);
 };
@@ -172,7 +181,7 @@ const syncUpProducts = () => {
 
   console.log("Starting syncUp");
   syncInFlight = true;
-  const fieldlist = ["Name", "Description", "LastModifiedById", "ExternalId"];
+  const fieldlist = ["Name", "Description", "ExternalId"];
   return syncUp(false, {}, "Product2", {
     mergeMode: mobilesync.MERGE_MODE.OVERWRITE,
     fieldlist,
@@ -194,7 +203,7 @@ export const addContact = (successCallback, errorCallback) => {
     Name: null,
     Description: null,
     ExternalId: null,
-    LastModifiedById: null,
+    LastModifiedDate: `${new Date().toISOString()}`,
     attributes: { type: "Product2" },
     __locally_created__: true,
     __locally_updated__: false,

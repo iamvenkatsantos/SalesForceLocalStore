@@ -43,7 +43,6 @@ class ContactListScreen extends React.Component {
 
   fetchData() {
     syncData();
-    var that = this;
     addStoreChangeListener(this.refresh);
   }
 
@@ -55,6 +54,12 @@ class ContactListScreen extends React.Component {
           data: products,
           queryNumber: currentStoreQuery,
         });
+        // net.query(
+        //   `Select Id, Name FROM Product2 WHERE Product2.Name="TestProduct" LIMIT 2`,
+        //   (response) => {
+        //     console.log("-------------", response.records);
+        //   }
+        // );
       },
       (error) => {
         console.log(error);
@@ -68,9 +73,7 @@ class ContactListScreen extends React.Component {
       let ISTdate = new Date(`${formatDate[0]}`);
       return `Modified by ${ISTdate.toString().slice(4, 16)}`;
     } else {
-      let formatDate = JSON.stringify(new Date()).split("T");
-      let ISTdate = new Date(`${formatDate[0].split('"')[1]}`);
-      return `Modified by ${ISTdate.toString().slice(4, 16)}`;
+      return "Invalid Date";
     }
   }
 
@@ -108,7 +111,11 @@ class ContactListScreen extends React.Component {
             </TouchableOpacity>
           </View>
         </View>
-        {console.log(this.state.data[this.state.data.length - 3])}
+        {/* {console.log(
+          this.state.data[this.state.data.length - 3],
+          "----------------------",
+          this.state.data[this.state.data.length - 1]
+        )} */}
         <View style={styles.flatView}>
           <FlatList
             data={this.state.data}
