@@ -34,6 +34,7 @@ const syncDownProducts = () => {
     "ExternalId",
     "LastModifiedDate",
   ];
+  
   const target = {
     type: "soql",
     query: `SELECT ${fieldlist.join(",")} FROM Product2 LIMIT 10000 `,
@@ -172,6 +173,9 @@ const firstTimeSyncData = () => {
     { path: "__local__", type: "string" },
   ]).then(syncDownProducts);
 };
+
+
+
 //ITS USED TO UPDATE OUR OBJECT INTO SERVER OBJECT
 const syncUpProducts = () => {
   if (syncInFlight) {
