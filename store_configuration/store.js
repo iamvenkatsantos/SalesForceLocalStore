@@ -8,6 +8,7 @@ const syncUp = forceUtil.promiserNoRejection(mobilesync.syncUp);
 const reSync = forceUtil.promiserNoRejection(mobilesync.reSync);
 
 const syncName = "mobileSyncExplorerSyncDown";
+const syncName2 = "mobile2";
 let syncInFlight = false;
 let lastStoreQuerySent = 0;
 let lastStoreResponseReceived = 0;
@@ -27,29 +28,40 @@ const syncDownProducts = () => {
   }
   console.log("Starting syncDown");
   syncInFlight = true;
-  const fieldlist = [
-    "Id",
-    "Name",
-    "Description",
-    "ExternalId",
-    "LastModifiedDate",
-  ];
-  
-  const target = {
+  // const fieldlist = ["Id", "Name", "VisitorAddressId", "Address", "TimeZone"];
+
+  //select ID, Name, VisitorAddressId, VisitorAddressId.Name from Location
+  const targetForLocation = {
     type: "soql",
-    query: `SELECT ${fieldlist.join(",")} FROM Product2 LIMIT 10000 `,
+    query: `SELECT Id,Name,VisitorAddressId FROM Location`,
   };
+
+  const targetForAddress = {
+    type: "soql",
+    query: `SELECT Id,Address FROM Address`,
+  };
+
   return syncDown(
     false,
-    target,
-    "Product2",
+    targetForLocation,
+    "location",
     { mergeMode: mobilesync.MERGE_MODE.OVERWRITE },
     syncName
-  ).then(() => {
-    console.log("syncDown completed or failed");
-    syncInFlight = false;
-    emitSmartStoreChanged();
-  });
+  )
+    .then(() =>
+      syncDown(
+        false,
+        targetForAddress,
+        "address",
+        { mergeMode: mobilesync.MERGE_MODE.OVERWRITE },
+        syncName2
+      )
+    )
+    .then(() => {
+      console.log("syncDown completed or failed");
+      syncInFlight = false;
+      emitSmartStoreChanged();
+    });
 };
 
 //ITS USED TO VERIFY TO GET A LATEST UPDATE FROM ALREADY USED OBJECT, DON'T GET THE ALL OFF THE OBJECT FROM SERVER
@@ -75,34 +87,40 @@ export const addStoreChangeListener = (listener) => {
 //ITS USED TO GET OUR PRODUCTS FROM PRODUCT2 OBJECT IN SERVER
 export const getProducts = (query, successCallback, errorCallback) => {
   let querySpec;
-  querySpec = smartstore.buildAllQuerySpec("Name", "ascending", 2);
+  querySpec = smartstore.buildSmartQuerySpec(
+    `select {location:Name}, {address:Address} || ' ' || {address:Id} from {address}, {location} where {location:VisitorAddressId} == {address:Id} order by {location:Name}`,
+    2
+  );
+  lastStoreQuerySent++;
+  const currentStoreQuery = lastStoreQuerySent;
 
-  // query = "Venkat";
-  // querySpec = smartstore.buildMatchQuerySpec(
-  //   null,
-  //   `{Product2:Name}:${query}*`,
-  //   "ascending",
-  //   100,
-  //   "Name"
-  // );
+  const querySuccessCB = (contacts) => {
+    successCallback(contacts, currentStoreQuery);
+  };
 
-  //ITS USED FOR SEARCHING PURPOSE
-  //   if (query === "") {
-  //   } else {
-  //     const queryParts = query.split(/ /);
-  //     const queryFirst = queryParts.length == 2 ? queryParts[0] : query;
-  //     const queryLast = queryParts.length == 2 ? queryParts[1] : query;
-  //     const queryOp = queryParts.length == 2 ? "AND" : "OR";
-  //     const match = `{contacts:FirstName}:${queryFirst}* ${queryOp} {contacts:LastName}:${queryLast}*`;
-  //     querySpec = smartstore.buildMatchQuerySpec(
-  //       null,
-  //       match,
-  //       "ascending",
-  //       100,
-  //       "LastName"
-  //     );
-  //   }
-  //   const that = this;
+  const queryErrorCB = (error) => {
+    console.log(`Error->${JSON.stringify(error)}`);
+    errorCallback(error);
+  };
+
+  smartstore.runSmartQuery(
+    false,
+    querySpec,
+    (cursor) => {
+      if (currentStoreQuery > lastStoreResponseReceived) {
+        lastStoreResponseReceived = currentStoreQuery;
+        traverseCursor([], cursor, 0, querySuccessCB, queryErrorCB);
+      } else {
+      }
+    },
+    queryErrorCB
+  );
+};
+
+export const getAddress = (query, successCallback, errorCallback) => {
+  let querySpec;
+  querySpec = smartstore.buildAllQuerySpec("Id", "ascending", 2);
+  lastStoreQuerySent === 0;
   lastStoreQuerySent++;
   const currentStoreQuery = lastStoreQuerySent;
 
@@ -117,7 +135,7 @@ export const getProducts = (query, successCallback, errorCallback) => {
 
   smartstore.querySoup(
     false,
-    "Product2",
+    "address",
     querySpec,
     (cursor) => {
       if (currentStoreQuery > lastStoreResponseReceived) {
@@ -162,19 +180,32 @@ const traverseCursor = (
   }
 };
 
+//
+
 //FIRST TIME WE HAVE TO CREATE
 const firstTimeSyncData = () => {
-  return registerSoup(false, "Product2", [
-    { path: "Id", type: "string" },
-    { path: "Name", type: "full_text" },
-    { path: "Description", type: "full_text" },
-    { path: "ExternalId", type: "full_text" },
-    { path: "LastModifiedDate", type: "string" },
-    { path: "__local__", type: "string" },
-  ]).then(syncDownProducts);
+  const addressFiledList = [
+    { value: "Id", type: "string" },
+    { value: "Address", type: "json1" },
+  ];
+
+  const fieldlist = [
+    { value: "Id", type: "string" },
+    { value: "Name", type: "string" },
+    { value: "VisitorAddressId", type: "string" },
+  ];
+  var addressSoup = [];
+  var locationSoup = [];
+  fieldlist.map(({ value, type }) => {
+    locationSoup.push({ path: value.toString(), type });
+  });
+  addressFiledList.map(({ value, type }) => {
+    addressSoup.push({ path: value.toString(), type });
+  });
+  return registerSoup(false, "location", locationSoup).then(() =>
+    registerSoup(false, "address", addressSoup).then(syncDownProducts)
+  );
 };
-
-
 
 //ITS USED TO UPDATE OUR OBJECT INTO SERVER OBJECT
 const syncUpProducts = () => {

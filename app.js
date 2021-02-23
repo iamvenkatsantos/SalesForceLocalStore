@@ -17,6 +17,7 @@ import {
   reSyncData,
   addStoreChangeListener,
   getProducts,
+  getAddress,
 } from "./store_configuration/store";
 
 import { faPlus, faSync } from "@fortawesome/free-solid-svg-icons";
@@ -44,22 +45,27 @@ class ContactListScreen extends React.Component {
   fetchData() {
     syncData();
     addStoreChangeListener(this.refresh);
+    // net.query(`SELECT Id,Address,TimeZone FROM Address LIMIT 2`, (response) => {
+    //   console.log("-------------", response.records);
+    // });
   }
 
   refresh = () => {
     getProducts(
       "",
       (products, currentStoreQuery) => {
+        var array = [];
+        products.map((value) => {
+          array.push({
+            Name: value[0],
+            Id: value[1],
+            VisitorAddressId: value[2],
+          });
+        });
         this.setState({
-          data: products,
+          data: array,
           queryNumber: currentStoreQuery,
         });
-        // net.query(
-        //   `Select Id, Name FROM Product2 WHERE Product2.Name="TestProduct" LIMIT 2`,
-        //   (response) => {
-        //     console.log("-------------", response.records);
-        //   }
-        // );
       },
       (error) => {
         console.log(error);
@@ -124,12 +130,12 @@ class ContactListScreen extends React.Component {
               <View style={styles.faltViewCard}>
                 <View style={styles.container1}>
                   <Text style={styles.text}>Product Name:</Text>
-                  <Text style={styles.text1}>{item.Name}</Text>
+                  <Text style={styles.text1}>{item?.Name}</Text>
                 </View>
                 <View style={styles.container1}>
                   <Text style={styles.text}>Description:</Text>
                   <Text style={styles.text3}>
-                    {item.Description || "Description yet to be added"}
+                    {item?.Description || "Description yet to be added"}
                   </Text>
                 </View>
                 <Text style={styles.text2}>
