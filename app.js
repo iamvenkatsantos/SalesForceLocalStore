@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 
 import { createStackNavigator } from "@react-navigation/stack";
@@ -16,23 +17,39 @@ import {
   syncData,
   reSyncData,
   addStoreChangeListener,
-  getProducts,
-  getAddress,
+  getData,
+  getSyncStatus,
+  saveDataLocal,
+  getDataWithQueryFun,
 } from "./store_configuration/store";
 
-import { faPlus, faSync } from "@fortawesome/free-solid-svg-icons";
+import {
+  faAddressCard,
+  faDownload,
+  faFileExport,
+  faPlus,
+  faSync,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import AddProduct from "./AddProduct";
 class ContactListScreen extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { data: [], queryNumber: 0 };
+    this.state = {
+      data: [],
+      queryNumber: 0,
+      isLoading: false,
+      syncStatus: null,
+      progress: 0,
+      visitKpi: null,
+    };
   }
 
+  timerId = "";
   componentDidMount() {
     var that = this;
     oauth.getAuthCredentials(
-      () => that.fetchData(), // already logged in
+      () => console.log("Welcome"), // already logged in
       () => {
         oauth.authenticate(
           () => that.fetchData(),
@@ -42,29 +59,56 @@ class ContactListScreen extends React.Component {
     );
   }
 
-  fetchData() {
-    syncData();
-    addStoreChangeListener(this.refresh);
-    // net.query(`SELECT Id,Address,TimeZone FROM Address LIMIT 2`, (response) => {
-    //   console.log("-------------", response.records);
-    // });
-  }
+  fetchData = () => {
+    console.log(this.state);
+    if (this.state.data?.length === 0) {
+      syncData();
+      addStoreChangeListener(this.refresh);
+      this.getStatus;
+      this.timerId = setInterval(this.getStatus, 2500);
+      this.setState({
+        ...this.state,
+        isLoading: true,
+      });
+    }
+  };
 
   refresh = () => {
-    getProducts(
+    getData(
       "",
-      (products, currentStoreQuery) => {
+      (data, currentStoreQuery) => {
+        data.map((value) => {
+          console.log("DATA COUNT", data[0]);
+          clearInterval(this.timerId);
+          this.setState({
+            ...this.state,
+            isLoading: false,
+          });
+        });
+      },
+      (error) => {
+        console.log(error);
+      }
+    );
+  };
+
+  getDataWithQuery = () => {
+    this.setState({ ...this.state, isLoading: true });
+    getDataWithQueryFun(
+      "",
+      (data, currentStoreQuery) => {
+        console.log("ACTUAL DATA ", data[0]);
         var array = [];
-        products.map((value) => {
+        data.map((value) => {
           array.push({
-            Name: value[0],
-            Id: value[1],
-            VisitorAddressId: value[2],
+            index: value[0],
+            retailVisitKpi: value[1],
           });
         });
         this.setState({
           data: array,
           queryNumber: currentStoreQuery,
+          isLoading: false,
         });
       },
       (error) => {
@@ -83,71 +127,106 @@ class ContactListScreen extends React.Component {
     }
   }
 
+  getStatus = () => {
+    getSyncStatus(false, "syncNameRetail").then((sync) => {
+      this.setState({ ...this.state, progress: sync.progress });
+    });
+  };
+
+  saveVisitKpi = () => {
+    const updatedObject = {
+      Id: "0Z33h000000MAGVCA4",
+      ActualStringValue: "Venkat",
+      ActualBooleanValue: true,
+      ActualIntegerValue: 619,
+      LastModifiedDate: `${new Date().toISOString()}`,
+      attributes: { type: "RetailVisitKpi" },
+      __locally_created__: false,
+      __locally_updated__: true,
+      __locally_deleted__: false,
+      __local__: true,
+      _soupEntryId: this.state?.data[0]?.index,
+    };
+    this.setState({ ...this.state, visitKpi: updatedObject }, () => {
+      console.log("UPDATED VALUE", updatedObject);
+      saveDataLocal(updatedObject, () =>
+        alert("Element Added in RetailVisitKpi")
+      );
+    });
+  };
+
   render() {
-    return (
-      <View style={styles.container}>
-        <View style={styles.container2}>
-          <Text style={styles.textHead}>Local Store</Text>
-          <View style={{ flexDirection: "row" }}>
-            <TouchableOpacity
-              style={styles.syncButton}
-              onPress={() => reSyncData()}
-              activeOpacity={0.8}
-            >
-              <Text style={{ ...styles.text, color: "white" }}>
-                <FontAwesomeIcon
-                  icon={faSync}
-                  color="white"
-                  size={width * 0.05}
-                />
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => this.props.navigation.navigate("add_product")}
-              activeOpacity={0.8}
-              style={styles.syncButton}
-            >
-              <Text style={{ ...styles.text, color: "white" }}>
-                <FontAwesomeIcon
-                  icon={faPlus}
-                  color="white"
-                  size={width * 0.05}
-                />
-              </Text>
-            </TouchableOpacity>
-          </View>
+    if (this.state.isLoading) {
+      return (
+        <View style={styles.containerLoad}>
+          <ActivityIndicator color="blue" size="large" />
+          <Text>{this.state.progress}%</Text>
         </View>
-        {/* {console.log(
-          this.state.data[this.state.data.length - 3],
-          "----------------------",
-          this.state.data[this.state.data.length - 1]
-        )} */}
-        <View style={styles.flatView}>
-          <FlatList
-            data={this.state.data}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View style={styles.faltViewCard}>
-                <View style={styles.container1}>
-                  <Text style={styles.text}>Product Name:</Text>
-                  <Text style={styles.text1}>{item?.Name}</Text>
-                </View>
-                <View style={styles.container1}>
-                  <Text style={styles.text}>Description:</Text>
-                  <Text style={styles.text3}>
-                    {item?.Description || "Description yet to be added"}
-                  </Text>
-                </View>
-                <Text style={styles.text2}>
-                  {this.displayDate(item.LastModifiedDate)}
+      );
+    } else {
+      return (
+        <View style={styles.container}>
+          <View style={styles.container2}>
+            <Text style={styles.textHead}>Local Store</Text>
+            <View style={{ flexDirection: "row" }}>
+              <TouchableOpacity
+                style={styles.syncButton}
+                onPress={this.fetchData}
+                activeOpacity={0.8}
+              >
+                <Text style={{ ...styles.text, color: "white" }}>
+                  <FontAwesomeIcon
+                    icon={faDownload}
+                    color="white"
+                    size={width * 0.05}
+                  />
                 </Text>
-              </View>
-            )}
-            keyExtractor={(item, index) => "key_" + index}
-          />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={this.getDataWithQuery}
+                activeOpacity={0.8}
+                style={styles.syncButton}
+              >
+                <Text style={{ ...styles.text, color: "white" }}>
+                  <FontAwesomeIcon
+                    icon={faFileExport}
+                    color="white"
+                    size={width * 0.05}
+                  />
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={this.saveVisitKpi}
+                activeOpacity={0.8}
+                style={styles.syncButton}
+              >
+                <Text style={{ ...styles.text, color: "white" }}>
+                  <FontAwesomeIcon
+                    icon={faPlus}
+                    color="white"
+                    size={width * 0.05}
+                  />
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.syncButton}
+                onPress={reSyncData}
+                activeOpacity={0.8}
+              >
+                <Text style={{ ...styles.text, color: "white" }}>
+                  <FontAwesomeIcon
+                    icon={faSync}
+                    color="white"
+                    size={width * 0.05}
+                  />
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.flatView} />
         </View>
-      </View>
-    );
+      );
+    }
   }
 }
 
@@ -179,6 +258,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "flex-start",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  containerLoad: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
     backgroundColor: "white",
   },

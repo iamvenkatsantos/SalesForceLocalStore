@@ -52,7 +52,6 @@ export default class AddProduct extends Component {
 
   addProduct = () => {
     let object = { ...this.state.products };
-
     object.Name = this.state.Name;
     object.Description = this.state.Description;
     object.LastModifiedById = this.state.ExternalId;
