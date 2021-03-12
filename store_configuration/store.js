@@ -37,7 +37,7 @@ const syncDownFun = () => {
 
   const targetForProduct = {
     type: "soql",
-    query: "SELECT Id,Name,IsActive,Description,ExternalId FROM Product2",
+    query: "SELECT Id,Name,IsActive,Description FROM Product2",
   };
 
   return syncDown(
@@ -68,7 +68,7 @@ const syncDownFun = () => {
 };
 
 //ITS USED TO VERIFY TO GET A LATEST UPDATE FROM ALREADY USED OBJECT, DON'T GET THE ALL OFF THE OBJECT FROM SERVER
-const reSyncContacts = () => {
+const reSyncD = () => {
   if (syncInFlight) {
     console.log("Not starting reSync - sync already in fligtht");
     return Promise.resolve();
@@ -89,12 +89,50 @@ export const addStoreChangeListener = (listener) => {
   eventEmitter.addListener(SMARTSTORE_CHANGED, listener);
 };
 
+export const getDataWithQueryForProductFun = (
+  query,
+  successCallback,
+  errorCallback
+) => {
+  let querySpec;
+
+  //select {retail:Id} || ' '|| {product:Name} from {product}, {retail} where {product.Id}={retail.ProductId} limit 20 {retail:Id},{product:Name},{product:Description},{retail:ActualStringValue},{retail:ActualIntegerValue}     where {retail:Id}="0Z33h000000MAGVCA4"
+  querySpec = smartstore.buildSmartQuerySpec(
+    `select * from {product} where {product:Id}="01t3h000002jtuNAAQ"`,
+    1
+  );
+
+  lastStoreQuerySent++;
+  const currentStoreQuery = lastStoreQuerySent;
+  const querySuccessCB = (contacts) => {
+    successCallback(contacts, currentStoreQuery);
+  };
+
+  const queryErrorCB = (error) => {
+    console.log(`Error->${JSON.stringify(error)}`);
+    errorCallback(error);
+  };
+
+  smartstore.runSmartQuery(
+    false,
+    querySpec,
+    (cursor) => {
+      if (currentStoreQuery > lastStoreResponseReceived) {
+        lastStoreResponseReceived = currentStoreQuery;
+        traverseCursor([], cursor, 0, querySuccessCB, queryErrorCB);
+      } else {
+      }
+    },
+    queryErrorCB
+  );
+};
+
 export const getDataWithQueryFun = (query, successCallback, errorCallback) => {
   let querySpec;
 
   //select {retail:Id} || ' '|| {product:Name} from {product}, {retail} where {product.Id}={retail.ProductId} limit 20 {retail:Id},{product:Name},{product:Description},{retail:ActualStringValue},{retail:ActualIntegerValue}     where {retail:Id}="0Z33h000000MAGVCA4"
   querySpec = smartstore.buildSmartQuerySpec(
-    `select * from {retail} where {retail:Id}="0Z33h000000MAGVCA4"`,
+    `select * from {retail} where {retail:Id}="0Z33h000000MAiNCAW"`,
     1
   );
 
@@ -127,7 +165,10 @@ export const getDataWithQueryFun = (query, successCallback, errorCallback) => {
 export const getData = (query, successCallback, errorCallback) => {
   let querySpec;
   //select {retail:Id} || ' '|| {product:Name} from {product}, {retail} where {product.Id}={retail.ProductId} limit 20 {retail:Id},{product:Name},{product:Description},{retail:ActualStringValue},{retail:ActualIntegerValue}     where {retail:Id}="0Z33h000000MAGVCA4"
-  querySpec = smartstore.buildSmartQuerySpec(`select count() from {retail}`, 1);
+  querySpec = smartstore.buildSmartQuerySpec(
+    `select count() from {product}`,
+    1
+  );
   lastStoreQuerySent++;
   const currentStoreQuery = lastStoreQuerySent;
   const querySuccessCB = (contacts) => {
@@ -202,10 +243,6 @@ const firstTimeSyncData = () => {
       value: "Description",
       type: "string",
     },
-    {
-      value: "ExternalId",
-      type: "string",
-    },
     { value: "__local__", type: "string" },
   ];
   const retailFeild = [
@@ -247,7 +284,7 @@ const firstTimeSyncData = () => {
 };
 
 //ITS USED TO UPDATE OUR OBJECT INTO SERVER OBJECT
-const syncUpProducts = () => {
+const syncUpData = () => {
   if (syncInFlight) {
     console.log("Not starting syncUp - sync already in fligtht");
     return Promise.resolve();
@@ -256,11 +293,11 @@ const syncUpProducts = () => {
   console.log("Starting syncUp");
   syncInFlight = true;
   const retailField = [
-    "ActualStringValue",
-    "ActualBooleanValue",
-    "ActualIntegerValue",
+    // "ActualStringValue",
+    // "ActualBooleanValue",
+     "ActualIntegerValue",
   ];
-  const productField = ["Name", "IsActive", "Description", "ExternalId]"];
+  const productField = ["Name", "Description"];
 
   return syncUp(false, {}, "retail", {
     mergeMode: mobilesync.MERGE_MODE.OVERWRITE,
@@ -279,16 +316,24 @@ const syncUpProducts = () => {
     });
 };
 
+export const syncUpToServer = () => {
+  return syncUpData().then(() => {
+    console.log("Sync Up completed Successfully");
+    alert("Sync Up completed Successfully");
+  });
+};
+
 //resyncin
 export const reSyncData = () => {
-  return syncUpProducts()
-    .then(reSyncContacts)
-    .then(() => alert("Sync Completed Successfully"));
+  return reSyncD().then(() => {
+    console.log("reSync completed Successfully");
+    alert("reSync Completed Successfully");
+  });
 };
 
 //save local
-export const saveDataLocal = (contact, callback) => {
-  smartstore.upsertSoupEntries(false, "retail", [contact], () => {
+export const saveDataLocal = (soupName, contact, callback) => {
+  smartstore.upsertSoupEntries(false, soupName, [contact], () => {
     callback();
     emitSmartStoreChanged();
   });

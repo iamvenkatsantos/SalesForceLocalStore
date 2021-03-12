@@ -21,6 +21,8 @@ import {
   getSyncStatus,
   saveDataLocal,
   getDataWithQueryFun,
+  syncUpToServer,
+  getDataWithQueryForProductFun,
 } from "./store_configuration/store";
 
 import {
@@ -29,6 +31,7 @@ import {
   faFileExport,
   faPlus,
   faSync,
+  faUpload,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import AddProduct from "./AddProduct";
@@ -42,6 +45,7 @@ class ContactListScreen extends React.Component {
       syncStatus: null,
       progress: 0,
       visitKpi: null,
+      productData: [],
     };
   }
 
@@ -60,7 +64,6 @@ class ContactListScreen extends React.Component {
   }
 
   fetchData = () => {
-    console.log(this.state);
     if (this.state.data?.length === 0) {
       syncData();
       addStoreChangeListener(this.refresh);
@@ -78,7 +81,7 @@ class ContactListScreen extends React.Component {
       "",
       (data, currentStoreQuery) => {
         data.map((value) => {
-          console.log("DATA COUNT", data[0]);
+          console.log("PRODUCT DATA COUNT", data[0]);
           clearInterval(this.timerId);
           this.setState({
             ...this.state,
@@ -97,7 +100,7 @@ class ContactListScreen extends React.Component {
     getDataWithQueryFun(
       "",
       (data, currentStoreQuery) => {
-        console.log("ACTUAL DATA ", data[0]);
+        console.log("QUERY DATA FOR RETAIL ", data[0]);
         var array = [];
         data.map((value) => {
           array.push({
@@ -107,6 +110,31 @@ class ContactListScreen extends React.Component {
         });
         this.setState({
           data: array,
+          queryNumber: currentStoreQuery,
+          isLoading: false,
+        });
+      },
+      (error) => {
+        console.log(error);
+      }
+    );
+  };
+
+  getDataWithQueryForProduct = () => {
+    this.setState({ ...this.state, isLoading: true });
+    getDataWithQueryForProductFun(
+      "",
+      (data, currentStoreQuery) => {
+        console.log("QUERY DATA FOR PRODUCT", data[0]);
+        var array = [];
+        data.map((value) => {
+          array.push({
+            index: value[0],
+            product: value[1],
+          });
+        });
+        this.setState({
+          productData: array,
           queryNumber: currentStoreQuery,
           isLoading: false,
         });
@@ -135,21 +163,48 @@ class ContactListScreen extends React.Component {
 
   saveVisitKpi = () => {
     const updatedObject = {
-      Id: "0Z33h000000MAGVCA4",
-      ActualStringValue: "Venkat",
-      ActualBooleanValue: true,
-      ActualIntegerValue: 619,
+      Id: "0Z33h000000MAiNCAW",
+      // ActualStringValue: "TRYING",
+      //  ActualBooleanValue: true,
+       ActualIntegerValue: 0,
       LastModifiedDate: `${new Date().toISOString()}`,
       attributes: { type: "RetailVisitKpi" },
-      __locally_created__: false,
-      __locally_updated__: true,
-      __locally_deleted__: false,
-      __local__: true,
+      __locally_created__: this.state?.data[0]?.retailVisitKpi
+        .__locally_created__,
+      __locally_updated__: !this.state?.data[0]?.retailVisitKpi
+        .__locally_updated__,
+      __locally_deleted__: this.state?.data[0]?.retailVisitKpi
+        .__locally_deleted__,
+      __local__: this.state?.data[0]?.retailVisitKpi.__local__,
       _soupEntryId: this.state?.data[0]?.index,
     };
     this.setState({ ...this.state, visitKpi: updatedObject }, () => {
-      console.log("UPDATED VALUE", updatedObject);
-      saveDataLocal(updatedObject, () =>
+      console.log("UPDATED VALUE FOR RETAIL", updatedObject);
+      saveDataLocal("retail", updatedObject, () =>
+        alert("Element Added in RetailVisitKpi")
+      );
+    });
+  };
+
+  saveProductObject = () => {
+    const updatedObject = {
+      Id: "01t3h000002jtuNAAQ",
+      Name: "New Name",
+      Description: "Try to split a step by step process",
+      LastModifiedDate: `${new Date().toISOString()}`,
+      attributes: { type: "Product2" },
+      __locally_created__: this.state?.productData[0]?.product
+        .__locally_created__,
+      __locally_updated__: !this.state?.productData[0]?.product
+        .__locally_updated__,
+      __locally_deleted__: this.state?.productData[0]?.product
+        .__locally_deleted__,
+      __local__: this.state?.productData[0]?.product.__local__,
+      _soupEntryId: this.state?.productData[0]?.index,
+    };
+    this.setState({ ...this.state, visitKpi: updatedObject }, () => {
+      console.log("UPDATED VALUE FOR PRODUCT", updatedObject);
+      saveDataLocal("product", updatedObject, () =>
         alert("Element Added in RetailVisitKpi")
       );
     });
@@ -168,62 +223,109 @@ class ContactListScreen extends React.Component {
         <View style={styles.container}>
           <View style={styles.container2}>
             <Text style={styles.textHead}>Local Store</Text>
-            <View style={{ flexDirection: "row" }}>
-              <TouchableOpacity
-                style={styles.syncButton}
-                onPress={this.fetchData}
-                activeOpacity={0.8}
-              >
-                <Text style={{ ...styles.text, color: "white" }}>
-                  <FontAwesomeIcon
-                    icon={faDownload}
-                    color="white"
-                    size={width * 0.05}
-                  />
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={this.getDataWithQuery}
-                activeOpacity={0.8}
-                style={styles.syncButton}
-              >
-                <Text style={{ ...styles.text, color: "white" }}>
-                  <FontAwesomeIcon
-                    icon={faFileExport}
-                    color="white"
-                    size={width * 0.05}
-                  />
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={this.saveVisitKpi}
-                activeOpacity={0.8}
-                style={styles.syncButton}
-              >
-                <Text style={{ ...styles.text, color: "white" }}>
-                  <FontAwesomeIcon
-                    icon={faPlus}
-                    color="white"
-                    size={width * 0.05}
-                  />
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.syncButton}
-                onPress={reSyncData}
-                activeOpacity={0.8}
-              >
-                <Text style={{ ...styles.text, color: "white" }}>
-                  <FontAwesomeIcon
-                    icon={faSync}
-                    color="white"
-                    size={width * 0.05}
-                  />
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
-          <View style={styles.flatView} />
+          <View style={styles.flatView}>
+            <TouchableOpacity
+              style={styles.syncButton}
+              onPress={this.fetchData}
+              activeOpacity={0.8}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faDownload}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Download`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={this.getDataWithQuery}
+              activeOpacity={0.8}
+              style={styles.syncButton}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faFileExport}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Query Retail`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={this.saveVisitKpi}
+              activeOpacity={0.8}
+              style={styles.syncButton}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faPlus}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Update Retail`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={this.getDataWithQueryForProduct}
+              activeOpacity={0.8}
+              style={styles.syncButton}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faFileExport}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Query Product`}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={this.saveProductObject}
+              activeOpacity={0.8}
+              style={styles.syncButton}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faPlus}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Update Product`}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.syncButton}
+              onPress={syncUpToServer}
+              activeOpacity={0.8}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faUpload}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Sync Up`}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.syncButton}
+              onPress={reSyncData}
+              activeOpacity={0.8}
+            >
+              <Text style={{ ...styles.text, color: "black" }}>
+                <FontAwesomeIcon
+                  icon={faSync}
+                  color="black"
+                  size={width * 0.05}
+                />
+                {` Resync`}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -279,7 +381,7 @@ const styles = StyleSheet.create({
     backgroundColor: "black",
   },
   syncButton: {
-    width: width * 0.1,
+    width: width * 0.5,
     height: width * 0.1,
     justifyContent: "center",
     alignItems: "center",
@@ -290,7 +392,7 @@ const styles = StyleSheet.create({
     width: width * 0.95,
     height: width * 1.83,
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "space-around",
     paddingTop: width * 0.05,
     shadowColor: "#000",
     shadowOffset: {
