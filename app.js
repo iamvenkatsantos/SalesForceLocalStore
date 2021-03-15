@@ -164,9 +164,9 @@ class ContactListScreen extends React.Component {
   saveVisitKpi = () => {
     const updatedObject = {
       Id: "0Z33h000000MAiNCAW",
-      // ActualStringValue: "TRYING",
+      ActualStringValue: "TRYING",
       //  ActualBooleanValue: true,
-       ActualIntegerValue: 0,
+      ActualIntegerValue: 0,
       LastModifiedDate: `${new Date().toISOString()}`,
       attributes: { type: "RetailVisitKpi" },
       __locally_created__: this.state?.data[0]?.retailVisitKpi
